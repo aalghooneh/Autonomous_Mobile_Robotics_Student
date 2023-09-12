@@ -2,9 +2,9 @@
 
 ## Install pre-requisites of the course
 If you have not installed Ubuntu 22.04 yet, please do that first.
-Download the script (or if you installed ```git```, clone this repository with ```git clone https://github.com/aalghooneh/MTE544_student```)
+Download the script (or if you installed ```git```, clone this repository with ```git clone https://github.com/aalghooneh/MTE544_student```, then change the branch to ```setup``` with ```git checkout setup```)
 
-Run the script:
+Run the script (it needs sudo privilege, so you will need to type in your password when prompted):
 ```
 sh setup_mte544.sh
 ```
