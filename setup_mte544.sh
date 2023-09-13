@@ -12,11 +12,16 @@ sudo apt-get install -y net-tools iputils-ping
 
 os_codename=$(lsb_release -cs)
 
-if [ $os_codename = "jammy" ]; 
-then
-	echo "--------------------------------"
-	echo "....can install humble on it...."
-	echo "--------------------------------"
+
+if [ "$os_codename" = "jammy" ]; then
+    echo "--------------------------------"
+    echo "....can install humble on it...."
+    echo "--------------------------------"
+else
+    echo "--------------------------------"
+    echo "....cannot install humble on this OS...."
+    echo "--------------------------------"
+    exit 1  # Exit the script with a status code of 1
 fi
 
 sleep 1
