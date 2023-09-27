@@ -19,6 +19,11 @@ The overall stack for a mobile robot can be summarized as something like this:
 
 The development of this stack starts from LAB-2 by developing a closed-loop controller. You can see in the diagram the components that you will be developing in the remaining labs and how they are interconnected.
 
+## Structure of this repository
+This repository is divided in branches. Each lab will have its own branch. The main branch contains this readme file and some guidelines such as the two markdown files to run your robot in simulation and how to connect to the real robot.
+
+For each lab, switch to the respective branch to see the manual and codes.
+
 ## Expected outcome for the labs
 
 By the end of this course, you should:
