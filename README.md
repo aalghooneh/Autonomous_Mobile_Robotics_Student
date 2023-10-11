@@ -25,7 +25,7 @@ During the 3 hours in the lab, you want to utilize this time to test your code, 
 While in-lab, you are required to use the Desktop PCs and **NOT** your personal setup (VMWare, remote desktop, lent laptop). So, make sure that you have your modified files, either online or on a USB, with you to try it out in-lab. 
 
 ## Part 1 - connecting to the robot (no marks)
-Open the `connectToUWtb4s.md` markdown file in the main branch, and follow along. Read and follow each step carefully.
+Open the [connectToUWtb4s.md](https://github.com/aalghooneh/MTE544_student/blob/main/connectToUWtb4s.md) markdown file in the main branch, and follow along. Read and follow each step carefully.
 
 ## Part 2 - Robot teleop (no marks)
 
@@ -121,6 +121,8 @@ To record a bag file (you can also check [here](https://docs.ros.org/en/humble/T
 Note that when playing the bag file, it will play only for the duration for which you recorded it. If you want it to loop, you can add the option ```--loop``` to the bag play command.
 
 *NOTE* do not save all the topics in your bag file, as it would be extremely large, select the ones that you actually need.
+
+**IMPORTANT!! Before you leave, DELETE all of your codes, files, etc.**
 
 ## Conclusions - Written report (25 marks)
 You can do this part in the lab (time allowing) or at home. Make sure you have the proper data saved.
