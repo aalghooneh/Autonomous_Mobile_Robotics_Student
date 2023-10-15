@@ -30,7 +30,7 @@ class PID_ctrl:
         
         if status == False:
             self.__update(stamped_error)
-            return 0,0
+            return 0.0
         else:
             return self.__update(stamped_error)
 
