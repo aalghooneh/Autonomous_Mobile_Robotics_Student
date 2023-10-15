@@ -13,7 +13,7 @@ from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry as odom
 
-from localization import localization
+from localization import localization, rawSensor
 
 from planner import TRAJECTORY_PLANNER, POINT_PLANNER, planner
 from controller import controller, trajectoryController
@@ -49,10 +49,11 @@ class decision_maker(Node):
             print("Error! you don't have this planner", file=sys.stderr)
 
 
-        # Instantiate the localization  
-        self.localizer=localization()
+        # Instantiate the localization, use rawSensor for now  
+        self.localizer=localization(rawSensor)
 
         # Instantiate the planner
+        # NOTE: goalPoint is used only for the pointPlanner
         self.goal=self.planner.plan(goalPoint)
 
         self.create_timer(publishing_period, self.timerCallback)

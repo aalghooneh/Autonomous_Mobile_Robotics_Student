@@ -1,3 +1,5 @@
+import sys
+
 from utilities import Logger, euler_from_quaternion
 from rclpy.time import Time
 from rclpy.node import Node
@@ -7,9 +9,10 @@ from nav_msgs.msg import Odometry as odom
 
 from rclpy import init, spin
 
+rawSensor = 0
 class localization(Node):
     
-    def __init__(self):
+    def __init__(self, localizationType=rawSensor):
 
         super().__init__("localizer")
         
@@ -21,8 +24,11 @@ class localization(Node):
         self.loc_logger=Logger("robot_pose.csv", ["x", "y", "theta", "stamp"])
         self.pose=None
         
+        if localizationType = rawSensor
         # TODO Part 3: subscribe to the position sensor topic (Odometry)
-        ...
+        # ...
+        else:
+            print("This type doesn't exist", sys.stderr)
     
     
     def odom_callback(self, pose_msg):
