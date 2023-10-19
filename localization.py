@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry as odom
 
 from rclpy import init, spin
 
+
 rawSensor = 0
 class localization(Node):
     
@@ -19,7 +20,7 @@ class localization(Node):
         # TODO Part 3: Define the QoS profile variable based on whether you are using the simulation (Turtlebot 3 Burger) or the real robot (Turtlebot 4)
         # Remember to define your QoS profile based on the information available in "ros2 topic info /odom --verbose" as explained in Tutorial 3
 
-        odom_qos=QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.VOLATILE, depth=10)
+        odom_qos=QoSProfile(reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.VOLATILE, depth=10)
         
         self.loc_logger=Logger("robot_pose.csv", ["x", "y", "theta", "stamp"])
         self.pose=None
@@ -37,7 +38,8 @@ class localization(Node):
         yaw = euler_from_quaternion(pose_msg.pose.pose.orientation)
 
         self.pose=[pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, yaw, pose_msg.header.stamp]
-        
+        #print("Yaw is ", yaw)
+        #print("x is ", self.pose[0], " y is ", self.pose[1])
         # Log the data
         self.loc_logger.log_values([self.pose[0], self.pose[1], self.pose[2], Time.from_msg(self.pose[3]).nanoseconds])
     

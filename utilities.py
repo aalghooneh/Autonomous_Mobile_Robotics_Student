@@ -119,7 +119,9 @@ def calculate_angular_error(current_pose, goal_pose):
     # Remember that this function returns the difference in orientation between where the robot currently faces and where it should face to reach the goal
 
 
-    error_angular = (goal_pose[2] - current_pose[2])
+    ideal_angle = atan2( goal_pose[1]-current_pose[1], goal_pose[0]-current_pose[0])
+
+    error_angular = ideal_angle - current_pose[2]
 
     while error_angular < -M_PI:
         error_angular += 2*M_PI

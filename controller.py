@@ -17,8 +17,8 @@ class controller:
     def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
         
         # TODO Part 5 and 6: Modify the below lines to test your PD, PI, and PID controller
-        self.PID_linear=PID_ctrl(P, klp, klv, kli, filename_="linear.csv")
-        self.PID_angular=PID_ctrl(P, kap, kav, kai, filename_="angular.csv")
+        self.PID_linear=PID_ctrl(PID, klp, klv, kli, filename_="linear.csv")
+        self.PID_angular=PID_ctrl(PID, kap, kav, kai, filename_="angular.csv")
 
     
     def vel_request(self, pose, goal, status):
@@ -37,12 +37,15 @@ class controller:
         angular_vel= MAX_ANG_VEL if angular_vel > MAX_ANG_VEL else angular_vel
         angular_vel= -MAX_ANG_VEL if angular_vel < -MAX_ANG_VEL else angular_vel
 
+        print("linear vel is ", linear_vel)
+        print("angular vel is ", linear_vel)
+
         return linear_vel, angular_vel
     
 
 class trajectoryController(controller):
 
-    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2, lookAhead=1.0):
+    def __init__(self, klp=1, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2, lookAhead=1.0):
         
         super().__init__(klp, klv, kli, kap, kav, kai)
         self.lookAhead=lookAhead
@@ -51,6 +54,8 @@ class trajectoryController(controller):
         
         goal=self.lookFarFor(pose, listGoals)
         
+        print(goal)
+
         finalGoal=listGoals[-1]
         
         e_lin=calculate_linear_error(pose, finalGoal) #avoids slowing down when reaching each way point (right???)
@@ -67,6 +72,9 @@ class trajectoryController(controller):
         angular_vel= MAX_ANG_VEL if angular_vel > MAX_ANG_VEL else angular_vel
         angular_vel= -MAX_ANG_VEL if angular_vel < -MAX_ANG_VEL else angular_vel
         
+        #print("linear vel is ", linear_vel)
+        #print("angular vel is ", linear_vel)
+
         return linear_vel, angular_vel
 
     def lookFarFor(self, pose, listGoals):

@@ -10,7 +10,7 @@ from rclpy import init, spin, spin_once
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from nav_msgs.msg import Odometry as odom
 
 from localization import localization, rawSensor
@@ -23,7 +23,7 @@ from controller import controller, trajectoryController
 
 class decision_maker(Node):
     
-    def __init__(self, publisher_msg, publishing_topic, qos_publisher, goalPoint, rate=10, motion_type=POINT_PLANNER):
+    def __init__(self, publisher_msg, publishing_topic, qos_publisher, goalPoint=[10.0, 10.0, 0.0], rate=10, motion_type=POINT_PLANNER):
 
         super().__init__("decision_maker")
 
@@ -53,7 +53,9 @@ class decision_maker(Node):
 
         # Instantiate the planner
         # NOTE: goalPoint is used only for the pointPlanner
-        self.goal=self.planner.plan(goalPoint)
+        spin_once(self.localizer)
+
+        self.goal=self.planner.plan(current_pose=self.localizer.getPose(), goalPoint=goalPoint)
 
         self.create_timer(publishing_period, self.timerCallback)
 
@@ -77,7 +79,7 @@ class decision_maker(Node):
         else: 
             error = calculate_linear_error(current_pose=self.localizer.getPose(), goal_pose=self.goal)
 
-        reached_goal= (error<0.1) #DOUBLE CHECK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        reached_goal= (error<0.05) #DOUBLE CHECK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         if reached_goal:
             print("reached goal")
@@ -106,8 +108,8 @@ def main(args=None):
 
     # TODO Part 3: You migh need to change the QoS profile based on whether you're using the real robot or in simulation.
     # Remember to define your QoS profile based on the information available in "ros2 topic info /odom --verbose" as explained in Tutorial 3
-    
-    odom_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
+    #reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.VOLATILE, depth=10)
+    odom_qos=QoSProfile(reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.VOLATILE, history=1, depth=10)
     
 
     # TODO Part 3: instantiate the decision_maker with the proper parameters for moving the robot
