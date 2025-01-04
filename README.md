@@ -1,30 +1,33 @@
-# LAB 1 - Sensor data processing for mobile robots
+# LAB 2 - Closed loop control of mobile robots
 
 ## Introduction
 
-Welcome to LAB 1 of the mobile robotics course! In this lab, participants will gain hands-on experience with mobile robots and acquire knowledge about their basic functionalities. By the end of this lab, 
-### Participants will be able to:
-- Interact with sensors.
-- Understand the pipeline of ros2 or any middleware.
-- Read and Process robot's data; sensors and actuators.
+Welcome to LAB 2 of the mobile robotics course! Here, you start shaping the overall structure of your mobile robot stack. Please check again the architecture provided in the README.md in the main branch and leave that open on your web browser. 
+
+In this lab, Participants will gain hands-on experience with mobile robots and acquire knowledge about their basic functionalities. By the end of this lab, participants will be able to:
+- Use the position data in a controller;
+- Control a mobile robot using a tunable PID controller.
+- Implement pure pursuit controller
 
 
-### Participants will learn:
+#### The summary of what you should learn is as following:
 
-1. How to connect to your mobile robot and make it move around. 
-2. How to properly read and log sensors through ros interfaces and OOP programming. 
+1. You will learn how to properly read and log position sensors using ros 2.
+2. You will write a PID controller class that can properly calculate derivate, and integral of your position sensor.
+3. You use the PID controller to perform two trajectories with the mobile robot while logging the error. Then, a report should be prepared comparing the P and PID controller in agility, accuracy, and overshoot.
+
 
 ### NOTES for pre-lab activities
 Given the limited time in the lab, it is highly recommended to go through this manual and start (or complete) your implementation before the lab date, by working on your personal setup (VMWare, remote desktop, lent laptop), and using simulation for testing when needed to verify that your codes are working before coming into the lab. For simulation, refer to `tbt3Simulation.md` in the `main` branch.
 
 During the 3 hours in the lab, you want to utilize this time to test your code, work with the actual robot, get feedback from the TAs, and acquire the in-lab marks (check `rubrics.md` in the same branch).
 
-While in-lab, you are required to use the Desktop PCs and **NOT** your personal setup (VMWare, remote desktop, lent laptop). So, make sure that you have your modified files, either online or on a USB, with you to try it out in-lab.
+While in-lab, you are required to use the Desktop PCs and **NOT** your personal setup (VMWare, remote desktop, lent laptop). So, make sure that you have your modified files, either online or on a USB, with you to try it out in-lab. 
 
-## Part 1 - Connect to the robot (5 marks)
-Open the [connectToUWtb4s.md](https://github.com/aalghooneh/MTE544_student/blob/main/connectToUWtb4s.md) markdown file in the main branch, and follow along. Read and follow each step carefully. Wait for TA approval before going to next step.
+## Part 1 - connecting to the robot (no marks)
+Open the [connectToUWtb4s.md](https://github.com/aalghooneh/MTE544_student/blob/main/connectToUWtb4s.md) markdown file in the main branch, and follow along. Read and follow each step carefully.
 
-## Part 2 - Play with the robot (5 marks)
+## Part 2 - Robot teleop (no marks)
 
 In this part, you will learn to play with the robot; you will get to undock it from the charger and then move it around by keyboard.  
 When you want to dock it again, It should be able to find it only when it is in less than ~0.5 meter around it. Note, that it doesn't
@@ -47,127 +50,94 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 See the prompt for help on the keys. 
 
 To dock the robot, use:
+
 ```
 ros2 action send_goal /dock irobot_create_msgs/action/Dock {}
 ```
 
-### Lead the robot to your seat and let a TA know to get your checkmark for grading!
+## NOTE: when you open a new terminal, you need to source again and set the domain ID, or you will not see the topics:
 
-### NOTE: when you open a new terminal, you need to source again and set the domain ID, or you will not see the topics:
 - Source the .bashrc file: source ~/robohub/turtlebot4/configs/.bashrc
 - Declare ros2 domain: export ROS_DOMAIN_ID=X (X being the number of your robot)
 
-## Part 3 - Setting up your code (15 marks)
 
-In this lab, you will complete the provided code ```motions.py``` to move the robot and collect data. 
-For robot movement, you will be sending motion commands as velocities (twists). This means you will need to publish velocities over the ```/cmd_vel``` topic. 
-For data collection from the IMU, the Lidar (laser scan), and the wheel encoders (odometry), you will be subscribing to ```/imu```, ```/scan```, and ```/odom```, respectively. 
+## Part 3 - Read the position sensor, and log data (15 marks)
 
-- Find ```utilities.py``` and ```motions.py``` in the current branch (labOne), and download them.
-- Open each script, and follow the TODO comments to implement the requirements corresponding to Parts 3 - 5 in this manual. You should replace each ```...``` in the script before you attempt running it.
+In this lab, you will implement a closed-loop controller to drive the robot by completing different parts of the code: the controller, the planner, and the localization. You can refer to the architecture to see how they are connected together.
 
-To setup your code:
-- Import the right types of messages needed (see ```motions.py```); to do so, you will need to check for message type and message components given the topic names and using ros2 commands ```ros2 topic info /topic_name``` and ```ros2 interface show message_type```, respectively, as covered in the tutorials. For online documentation of the messages (you need to select the ROS2 distro you are using)
-  - https://index.ros.org/p/geometry_msgs/
-  - https://index.ros.org/p/sensor_msgs/
-  - https://index.ros.org/p/nav_msgs 
-- Set up the publisher for the robot's motions;
-- Create the QoS profile.
-  
-**Define the QoS profile variable based on whether you are using the simulation (Turtlebot 3 Burger) or the real robot (Turtlebot 4).**
+- The controller is implemented using different control laws. You will start with a proportional controller (P) and then extend to proportional, derivative, integral (PID).
+- The planner generates the desired path/destination for the robot to follow, this can be as simple as a point planner, or a trajectory. At this stage, you will only implement predefined points/trajectories assuming the environment is perfect, we will see in LAB-4 how to implement optimal paths considering the environment (e.g. obstacles, walls).
+- The localization tells you where the robot is so that you can move the robot along the desired paths and read the data to feed back to your controller. At this stage, you will simply use the odometry to determine the position of the robot. In LAB-3 we will see how you can improve localization with sensor information (state estimation).
 
-**Use "ros2 topic info /odom --verbose" as explained in Tutorial 3.**
+To start with, you need to read the position sensor and log the data so it can be used in the controller.
 
-## Part 4 - Implement the motions (15 marks)
+Follow the comments in ```utilities.py```, ```localization.py``` and ```decisions.py```.
 
-In this part, you need to implement 3 different motions for the robot:
-- Circle;
-- Spiral;
-- Straight line.
+## Part 4 - Write a P controller (20 marks)
+Start with a simple case and write a P controller only. Remember the control law of a P-controller, you need the proportional gain and the error of the system you are regulating, in this case, they are the linear and angular movement of the robot.
+To implement the controller, you will need to:
+- Compute both the linear and angular errors; follow the comments in ```utilities.py```;
+- Use the error to implement the control law of the P-controller; follow the comments in ```pid.py```;
+- Log your errors to evaluate the performance of your controller and to tune the gains; follow the comments in ```pid.py```;
+- Add saturation limits for the robot's linear and angular velocity; follow the comments in ```controller.py```;
 
-Follow the comments in ```motions.py``` to implement these motions for the robot, there is one function for each of these motions. 
+  For real robot: Check out maximum linear and angular velocity from [Turtlebot 4 Specifications](https://turtlebot.github.io/turtlebot4-user-manual/overview/features.html#hardware-specifications).
 
-For real robots, you will need to tune your robot's motion parameters to make sure it fits into the classroom space.
+  For simulation: Check out maximum linear and angular velocity from [Turtlebot3 Burger Specifications](https://emanual.robotis.com/docs/en/platform/turtlebot3/features/)
+- Send the velocities to the robot to move the robot; follow the comments in ```decisions.py```.
 
-## Part 5 - Implement the data reading and logging (15 marks)
-To read from the sensors (IMU, Lidar, wheel encoders), you need to:
-- Subscribe to the topics these sensors are publishing data on;
-- Create callback functions to log the data.
+Now, you can test your P-controller with the point planner before proceeding:
+- Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
+- Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
+- Undock your robot if needed, and use the teleop node to drive your robot to a free space;
+- Run: ```python3 decision.py --motion point``` and robot should move to the corresponding point specified in ```planner.py```.
 
-Follow the comments in the ```motions.py``` and ```utilities.py``` to complete the above functionalities. The loggers that save the data on csv files are already implemented for you.
+## Part 5 - Upgrade to PID (20 marks)
+Now that you have implemented a P-controller, proceed with the extension to include the derivative and integral components. You will need to:
+- Implement the error derivative and integral; follow the comments in ```pid.py```;
+- Implement the control laws for PD, PI, PID; follow the comments in ```pid.py```;
+- Test each controller, i.e., P, PD, PI, and PID, using the point planner; follow the comments in ```controller.py```;
+- Log your errors to evaluate the performance of your controllers and to plot them in your report;
+- Plot robot pose and errors using the ```plot_errors.py``` for each controller.
+- Tune your code based on the plots; follow the comments in ```decisions.py```.
 
-## Part 6 - Execute on the robot and log the data (10 marks)
-If all of the above is completed, you should now be ready to execute the code on the robot. Run each case one by one (circle, spiral, line) to log the data.
-Log sufficient data for post processing and analysis. Make sure that the data is actually logged and saved.
+## Part 6 - Perform trajectories and log your error (20 marks)
+Implement more complex trajectories to test the performance of your controllers, follow the comments in ```planner.py```, and ```controller.py```. Cover these two trajectories, while logging the error.
+Note that you can scale these trajectories the much you like, as long as the resulted trajectory preserve the form.
 
-First drive the robot to a sufficiently large space, then start your motion sequences. You can use undock and the teleop as you did in *Part 2*. Remember to dock your robot at the end of your tests.
+* $y = x^2$
+* $\sigma(x) = {1}/({1 + e^{-x}})$
 
-To run your modifed ```motions.py``` script:
-- Make sure you can still see your robot's topics before attempting to run your script. The critical topics are ```/scan``` and ```/odom```, make sure they are available by running ```ros2 topic echo /topic_name```  If not, re-visit *Part 1*.
-- Open a terminal, go to your modified ```motions.py``` directory and run: ```python3 motion.py --motion line```
+For real robots, you will need to tune your generated trajectory to make sure it fits into the classroom space.
+Test all your controllers (P, PI, PD, PID) and tune your gains to obtain a good performance in terms of tracking:
+Run: ```python3 decision.py --motion trajectory```
 
-Test all motion sequences.
+Process the errors and visualize the plots to see how your controller is performing. Do a post-process plot with the logged data. You can use the ```plot_errors.py``` file (adapt and modify accordingly).
 
-### Show each motion sequence to one of the TAs.
+Try: You can also log your data with a bag file and save it so that you can use it after the lab is over. The bag file allows you to replay all the topics as if you ran the robot again. 
+To record a bag file (you can also check [here](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html)):
+- In a terminal, run ```ros2 bag record <topic_name>```, replace ```<topic_name>``` with the list of topics you want to record.
+- To stop recording, simply CTRL+C con the bag recording terminal.
+- To check the info of the bag you recorded ```ros2 bag info <bag_folder_name>```.
+- To play a bag file, in a terminal, run ```ros2 bag play <bag_folder_name>```.
+Note that when playing the bag file, it will play only for the duration for which you recorded it. If you want it to loop, you can add the option ```--loop``` to the bag play command.
 
-## Part 7 - Process your data and visualize them (10 marks)
-By running ```motions.py``` with different motion sequences, ```.csv``` files will be created for each message type subscribed. The files generated by your script can be found in the same directory as ```motions.py```. 
+*NOTE* do not save all the topics in your bag file, as it would be extremely large, select the ones that you actually need.
 
-The remaining part of this manual can be done in lab or at home. But it is recommended that you perform some plots to check the quality of the data before leaving the lab. You will not be able to recollect the data at another time if you did not perform this check.
+**IMPORTANT!! Before you leave, DELETE all of your codes, files, etc.**
 
-A simple data visualization script is provided ```filePlotter.py```. You can use/adapt/modify this script or create your own to visualize the data.
-By running the script, you will be able to create plots for the data collected. 
-
-*Plot the sensor data that you collected for the different movements from Part 6: laser scans, IMU data, and odometry data.*.
-These plots should help you with your discussions at the end of this manual.
-
-- Find ```filePlotter.py``` in the current branch (labOne), and download it.
-- Navigate to its directory, and run: ```python3 filePlotter.py --files imu_content_spiral.csv```
-- Generate plots for the data collected for each motion sequence for IMU and Odom.
-- For laserscan, find out how to convert the range matrix into the cartesian, if you have NaN/Inf clean that and then plot only one row of the data.
-
-## Part 8 - Map acquisition (10 marks)
-
-ROS 2 provides some packages that allow to perform mapping of the environment. This utilized SLAM (Simultaneous Localization and Mapping) provided by the Nav2 package. Find out which maze you should map from the ```List of groups``` excel sheet on LEARN.
-This will be very useful for the later labs, it will be especially needed for LAB-3 and LAB-4.
-
-In real world with TurtleBot4:
-
-See also this link for more details in [turtlebot4 manual](https://turtlebot.github.io/turtlebot4-user-manual/tutorials/generate_map.html):
-
-- Open a new terminal, make sure your environment is set up and your topics are available.
-- Undock your robot if docked.
-- Make sure the ```/scan``` and ```/odom``` topics are available by running ```ros2 topic echo /scan``` or ```ros2 topic echo /odom```. Use ```Ctrl+c``` to crash echo process.
-- In a new terminal, run the teleop node to drive the robot to the assigned maze entrance. Remember to decrease robot velocity before driving it around to ensure a decent quality of the map acquisition. 
-- Once you are at the maze entrance, launch the slam package by ```ros2 launch turtlebot4_navigation slam.launch.py ```. Keep the terminal running. 
-- In another terminal run RViz: ```ros2 launch turtlebot4_viz view_robot.launch.py```. This will help you to see the map, robot and the scan. Keep the terminal running.
-- Using the teleop node, drive the robot inside the maze until you can sufficiently map it. Bring the RViz window to the front while driving the robot. You should see areas and walls appearing on the map in RViz as the robot gets closer to obstacles/items. Note that the colors of the map reflect the confidence of the robot in thos locations. You should see that as you drive the robot closer to those areas, the confidence increases and the map becomes clearer and the base becomes more opaque.
-- In a new terminal, save the map with ```ros2 run nav2_map_server map_saver_cli -f map```. You should see the map saved in the folder where you are currently located. You should have 2 files, one .pgm, and one .yaml.
-
-You can do next part in the lab (time allowing) or at home. If your VM is slow, go ahead and use the lab PC.
-
-In simulation with TurtleBot3:
-- Follow the instructions in `tbt3Simulation.md` to run the robot in simulation 
-- In second terminal, run the slam: ```ros2 launch slam_toolbox online_sync_launch.py``` this will open RViz and you should see the base of the map.
-- In a third terminal, run the teleop node: ```ros2 run turtlebot3_teleop teleop_keyboard```.
-- Save the map with ```ros2 run nav2_map_server map_saver_cli -f map```. You should see the map saved in the folder where you are currently located. You should have 2 files, one .pgm, and one .yaml.
-
-You do not have to map the entire room, just a sufficient area to see a portion of the map.
-
-**IMPORTANT!! Before you leave, DELETE all of your codes, map files, etc.**
-
-## Conclusions - Written report (15 marks)
-You can do this part in the lab (time allowing) or at home.
+## Conclusions - Written report (25 marks)
+You can do this part in the lab (time allowing) or at home. Make sure you have the proper data saved.
 
 Please prepare a written report containing in the front page:
 - Names (Family Name, First Name) of all group members;
 - Student ID of all group members;
 - Station number and robot number.
 
-In a maximum of 2 pages (excluding the front page), report the following:
-- The plots you obtained. The plots should have, title, label name for axis, legends, different shapes/colors for each data, and grids.
-- A screenshot of your obtained map.
-- A brief explanation of the obtained plots (can be in the figure captions), and a brief discussion (interpretation, quality, etc) to show your understanding of the sensor information. *Hint*: you may leverage on the course material and the online documentation of the messages to better interpret your data.
+In a maximum of 3 pages (excluding the front page), report a comparison between the P-controller and the PID one. This report should only have two sections:
+
+* Section 1 - the plot of the logged error for the trajectories. The plot should have, title, label name for axis, legends, different shapes/colors for each error, and grids. 
+* Section 2 - comparing the controllers in agility, accuracy, and overshoot numerically. You should find the metrics for these three quantities from automatic control concepts/previous control courses. 
 
 ## Submission
 
