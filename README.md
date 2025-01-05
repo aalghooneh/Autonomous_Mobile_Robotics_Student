@@ -1,20 +1,18 @@
-# LAB 2 - Closed loop control of mobile robots
+# LAB 3\* - Localization through particle filter
 
 ## Introduction
 
-Welcome to LAB 2 of the mobile robotics course! Here, you start shaping the overall structure of your mobile robot stack. Please check again the architecture provided in the README.md in the main branch and leave that open on your web browser. 
-
-In this lab, Participants will gain hands-on experience with mobile robots and acquire knowledge about their basic functionalities. By the end of this lab, participants will be able to:
-- Use the position data in a controller;
-- Control a mobile robot using a tunable PID controller.
-- Implement pure pursuit controller
+Welcome to LAB 3 of the mobile robotics course! Here, you will make your stack more elaborate through adding a robust localization with particle filter. By the end of this lab, participants will be able to:
+- Have a good understanding of the particle filter.
+- Integrate the particle filter localization with the point controller from LAB 2.
+- Make an interactive interface to work with your navigational stack. 
 
 
 #### The summary of what you should learn is as following:
 
-1. You will learn how to properly read and log position sensors using ros 2.
-2. You will write a PID controller class that can properly calculate derivate, and integral of your position sensor.
-3. You use the PID controller to perform two trajectories with the mobile robot while logging the error. Then, a report should be prepared comparing the P and PID controller in agility, accuracy, and overshoot.
+1. You will learn how to search effieciently when you have a large space. 
+2. You will learn how to do resampling when you have better distributions for your states.
+3. You will how to leverage ros visualization tool (Rviz) to make an interactive interface with.
 
 
 ### NOTES for pre-lab activities
@@ -61,69 +59,74 @@ ros2 action send_goal /dock irobot_create_msgs/action/Dock {}
 - Declare ros2 domain: export ROS_DOMAIN_ID=X (X being the number of your robot)
 
 
-## Part 3 - Read the position sensor, and log data (15 marks)
+## Part 3 - Map aquisition (15 marks)
 
-In this lab, you will implement a closed-loop controller to drive the robot by completing different parts of the code: the controller, the planner, and the localization. You can refer to the architecture to see how they are connected together.
+Undock the robot, put the robot in the closest entrance marked for you, and reset the odometry, and then acquire the map as you did in LAB-1 and save it as room for use in the planning.
 
-- The controller is implemented using different control laws. You will start with a proportional controller (P) and then extend to proportional, derivative, integral (PID).
-- The planner generates the desired path/destination for the robot to follow, this can be as simple as a point planner, or a trajectory. At this stage, you will only implement predefined points/trajectories assuming the environment is perfect, we will see in LAB-4 how to implement optimal paths considering the environment (e.g. obstacles, walls).
-- The localization tells you where the robot is so that you can move the robot along the desired paths and read the data to feed back to your controller. At this stage, you will simply use the odometry to determine the position of the robot. In LAB-3 we will see how you can improve localization with sensor information (state estimation).
+```
+# terminal 1
+ros2 service call /reset_pose irobot_create_msgs/srv/ResetPose {}
+# terminal 2
+ros2 launch turtlebot4_navigation slam.launch.py
+# terminal 3
+ros2 launch turtlebot4_viz view_robot.launch.py
+# terminal 4
+ros2 run nav2_map_server map_saver_cli -f room
+``` 
+When the map is acquired, copy the generated files ```room.yaml``` and ```room.pgm``` to the ```your_map``` directory. **In case that you picked the robot or it hit an obstacle**, you should pick your robot back and place it on the entrance, then **reset odometry** again so the odometry matches your map acquisition. **Please make sure you killed the slam and the visualization terminals with Cntrl+C or closing the terminal**.
 
-To start with, you need to read the position sensor and log the data so it can be used in the controller.
+**Show the map to a TA to score the marks associated to this part.**
 
-Follow the comments in ```utilities.py```, ```localization.py``` and ```decisions.py```.
+## Part 4 - Localize your robot with Particle Filter (25 marks)
+Start by first fixing your particle filter, so you can run the standalone ```particleFilter.py``` to localize your robot. 
+To fix your particle filter, you will need to:
+- Complete the motion model for each particle; follow the comments in ```particle.py```;
+- See through impelementing a search algorithm for the map occupant grids and each particle weight calculation; follow the comments in ```particle.py``` and ```mapUtilities.py```;
+- Complete the resampling, weighted averaging for the particle filter algorithm; follow the comments in ```particleFilter.py```.
+- Once your code is completed test your implementation as following,
+  - Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
+  - Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
+  - Undock your robot if needed, and use the teleop node to drive your robot to a free space, and then,
 
-## Part 4 - Write a P controller (20 marks)
-Start with a simple case and write a P controller only. Remember the control law of a P-controller, you need the proportional gain and the error of the system you are regulating, in this case, they are the linear and angular movement of the robot.
-To implement the controller, you will need to:
-- Compute both the linear and angular errors; follow the comments in ```utilities.py```;
-- Use the error to implement the control law of the P-controller; follow the comments in ```pid.py```;
-- Log your errors to evaluate the performance of your controller and to tune the gains; follow the comments in ```pid.py```;
-- Add saturation limits for the robot's linear and angular velocity; follow the comments in ```controller.py```;
+```
+# terminal 1
+python3 mapPulisher.py
+# terminal 2
+python3 particleFilter.py
+# terminal 3
+rviz2 -d for_pf.rviz
+``` 
+  - When the Rviz window opened throw a good guess by using ```2D pose estimate``` button in the top toolbar.
+  - If the particles converged, try to moving the robot around with the ```ros2 run teleop_twist_keyboard teleop_twist_keyboard```.
 
-  For real robot: Check out maximum linear and angular velocity from [Turtlebot 4 Specifications](https://turtlebot.github.io/turtlebot4-user-manual/overview/features.html#hardware-specifications).
 
-  For simulation: Check out maximum linear and angular velocity from [Turtlebot3 Burger Specifications](https://emanual.robotis.com/docs/en/platform/turtlebot3/features/)
-- Send the velocities to the robot to move the robot; follow the comments in ```decisions.py```.
+**Show your work to TA to score the marks associated to this part.**
 
-Now, you can test your P-controller with the point planner before proceeding:
-- Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
-- Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
-- Undock your robot if needed, and use the teleop node to drive your robot to a free space;
-- Run: ```python3 decision.py --motion point``` and robot should move to the corresponding point specified in ```planner.py```.
 
-## Part 5 - Upgrade to PID (20 marks)
-Now that you have implemented a P-controller, proceed with the extension to include the derivative and integral components. You will need to:
-- Implement the error derivative and integral; follow the comments in ```pid.py```;
-- Implement the control laws for PD, PI, PID; follow the comments in ```pid.py```;
-- Test each controller, i.e., P, PD, PI, and PID, using the point planner; follow the comments in ```controller.py```;
-- Log your errors to evaluate the performance of your controllers and to plot them in your report;
-- Plot robot pose and errors using the ```plot_errors.py``` for each controller.
-- Tune your code based on the plots; follow the comments in ```decisions.py```.
 
-## Part 6 - Perform trajectories and log your error (20 marks)
-Implement more complex trajectories to test the performance of your controllers, follow the comments in ```planner.py```, and ```controller.py```. Cover these two trajectories, while logging the error.
-Note that you can scale these trajectories the much you like, as long as the resulted trajectory preserve the form.
+## Part 5 - Integration to the stack (15 marks)
+Now you need to run the point controller developed in LAB #2 with particle filter in the loop:
+- Integrate the particle filter into your localization model, ```localization.py```;
+- Design the proper flow; follow the comments in ```decisions.py```;
+- Test your navigation stack with particle filter in the loop as following,
+  - Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
+  - Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
+  - Undock your robot if needed, and use the teleop node to drive your robot to a free space, and then,
 
-* $y = x^2$
-* $\sigma(x) = {1}/({1 + e^{-x}})$
+```
+# terminal 1
+python3 mapPulisher.py
+# terminal 2
+python3 particleFilter.py
+# terminal 3
+rviz2 -d for_pf.rviz
+# terminal 4
+python3 decisions.py
+``` 
+  - When the Rviz window opened throw a good guess by using ```2D pose estimate``` button in the top toolbar.
+  - When the particles converged, choose your goal using ```2D nav goal``` button in the top toolbar.
 
-For real robots, you will need to tune your generated trajectory to make sure it fits into the classroom space.
-Test all your controllers (P, PI, PD, PID) and tune your gains to obtain a good performance in terms of tracking:
-Run: ```python3 decision.py --motion trajectory```
-
-Process the errors and visualize the plots to see how your controller is performing. Do a post-process plot with the logged data. You can use the ```plot_errors.py``` file (adapt and modify accordingly).
-
-Try: You can also log your data with a bag file and save it so that you can use it after the lab is over. The bag file allows you to replay all the topics as if you ran the robot again. 
-To record a bag file (you can also check [here](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html)):
-- In a terminal, run ```ros2 bag record <topic_name>```, replace ```<topic_name>``` with the list of topics you want to record.
-- To stop recording, simply CTRL+C con the bag recording terminal.
-- To check the info of the bag you recorded ```ros2 bag info <bag_folder_name>```.
-- To play a bag file, in a terminal, run ```ros2 bag play <bag_folder_name>```.
-Note that when playing the bag file, it will play only for the duration for which you recorded it. If you want it to loop, you can add the option ```--loop``` to the bag play command.
-
-*NOTE* do not save all the topics in your bag file, as it would be extremely large, select the ones that you actually need.
-
+**Show the map to a TA to score the marks associated to this part.**
 **IMPORTANT!! Before you leave, DELETE all of your codes, files, etc.**
 
 ## Conclusions - Written report (25 marks)
@@ -134,10 +137,10 @@ Please prepare a written report containing in the front page:
 - Student ID of all group members;
 - Station number and robot number.
 
-In a maximum of 3 pages (excluding the front page), report a comparison between the P-controller and the PID one. This report should only have two sections:
+In a maximum of 3 pages (excluding the front page), report a comparison between the particle filter and the rawSensor method:
 
-* Section 1 - the plot of the logged error for the trajectories. The plot should have, title, label name for axis, legends, different shapes/colors for each error, and grids. 
-* Section 2 - comparing the controllers in agility, accuracy, and overshoot numerically. You should find the metrics for these three quantities from automatic control concepts/previous control courses. 
+* Section 1 - the plot of the logged positions from the particle filter versus the odometry. 
+* Section 2 - comparing the particle filter performance by changing the laser scan and the particle generation standard deviation.
 
 ## Submission
 
