@@ -15,8 +15,6 @@ from nav_msgs.msg import Odometry as odom
 from sensor_msgs.msg import Imu
 from kalman_filter import kalman_filter
 
-from particleFilter import particleFilter
-
 from rclpy import init, spin, spin_once
 
 import numpy as np
@@ -24,34 +22,26 @@ import message_filters
 
 
 
-rawSensors=0; kalmanFilter=1; particlesFilter=2
-
+rawSensors=0; kalmanFilter=1
 
 odom_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
 
 
 class localization(Node):
     
-    def __init__(self, type_, loggerName="robotPose.csv", loggerHeaders=["imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx","kf_w","kf_x", "kf_y","stamp"]):
+    def __init__(self, type, loggerName="robotPose.csv", loggerHeaders=["imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx","kf_w","kf_x", "kf_y","stamp"]):
 
         super().__init__("localizer")
-        
-        
         
         
         self.loc_logger=Logger( loggerName , loggerHeaders)
         self.pose=None
         
-        
-        if type_==rawSensors:
-            self.initRawSensors()
-        
-        elif type_==kalmanFilter:
+        if type==rawSensors:
+            self.initRawSensors();
+        elif type==kalmanFilter:
             self.initKalmanfilter()
             self.kalmanInitialized = False
-
-        elif type_==particlesFilter:
-            self.initParticleFilter()
         else:
             print("We don't have this type for localization", sys.stderr)
             return            
@@ -61,22 +51,7 @@ class localization(Node):
     def initRawSensors(self):
         self.create_subscription(odom, "/odom", self.odom_callback, qos_profile=odom_qos)
 
-    def initParticleFilter(self):
-        print("initializing particle filter through subscription")
-        # TODO Part 5: write your subscriber to the particle filter
-        # generated pose.
-        ... 
-    def pf_pose_callback(self, pose_msg):
-
-
-        self.pose=[ pose_msg.pose.pose.position.x,
-                    pose_msg.pose.pose.position.y,
-                    euler_from_quaternion(pose_msg.pose.pose.orientation),
-                    pose_msg.header.stamp]
-        
-
     def initKalmanfilter(self):
-        
         
         self.odom_sub=message_filters.Subscriber(self, odom, "/odom", qos_profile=odom_qos)
         self.imu_sub=message_filters.Subscriber(self, Imu, "/imu", qos_profile=odom_qos)
@@ -95,16 +70,17 @@ class localization(Node):
                         0,
                         0,
                         0])        
-
-            Q=0.1*np.eye(6)
-            R=0.4*np.eye(4)
-            P=Q.copy()
             
-            
+            # TODO PART In case you went through KF 
+            # in the last lab you can put your gains here
+            # and try your code with KF in loop.
+            Q=...
+            R=...
+            P=...
+                        
             self.kf=kalman_filter(P,Q,R, x)
+            
             self.kalmanInitialized = True
-
-        
 
         
         dt = time.time() - self.timelast
@@ -116,7 +92,7 @@ class localization(Node):
                     odom_msg.twist.twist.angular.z,
                     imu_msg.linear_acceleration.x,
                     imu_msg.linear_acceleration.y])
-        print(dt)
+        
         self.kf.predict(dt)
         self.kf.update(z)
         
@@ -127,11 +103,6 @@ class localization(Node):
                             normalize_angle(xhat[2]),
                             odom_msg.header.stamp])
         
-        
-        self.loc_logger.log_values([z[2], z[3], xhat[5], xhat[4]*xhat[3], xhat[4], xhat[3], xhat[0], xhat[1], Time.from_msg(imu_msg.header.stamp).nanoseconds])
-        
-        print(f"{xhat[0]} and {xhat[1]} vs {odom_msg.pose.pose.position.x} vs {odom_msg.pose.pose.position.y}")
-    
     def odom_callback(self, pose_msg):
         
         self.pose=[ pose_msg.pose.pose.position.x,
@@ -139,6 +110,7 @@ class localization(Node):
                     euler_from_quaternion(pose_msg.pose.pose.orientation),
                     pose_msg.header.stamp]
         
+        #self.loc_logger.log_values([self.pose[0], self.pose[1], self.pose[2], Time.from_msg(self.pose[3]).nanoseconds])
 
         
     def getPose(self):

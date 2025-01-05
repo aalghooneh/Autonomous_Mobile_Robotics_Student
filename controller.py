@@ -72,4 +72,4 @@ class trajectoryController(controller):
                                axis=1)
         closestIndex=np.argmin(distanceSquared)
 
-        return listGoals[ min(closestIndex + 1, len(listGoals) - 1) ]
+        return listGoals[ min(closestIndex + 3, len(listGoals) - 1) ]

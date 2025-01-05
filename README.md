@@ -1,19 +1,25 @@
-# LAB 3\* - Localization through particle filter
+# LAB 4 - Path planning and navigation
 
 ## Introduction
 
-Welcome to LAB 3 of the mobile robotics course! Here, you will make your stack more elaborate through adding a robust localization with particle filter. By the end of this lab, participants will be able to:
-- Have a good understanding of the particle filter.
-- Integrate the particle filter localization with the point controller from LAB 2.
-- Make an interactive interface to work with your navigational stack. 
+Welcome to LAB 4 of the mobile robotics course! 
+In this lab, participants will gain experience with implementing a path planner and drive the robot using the obtained plan.
+By the end of this lab, participants will be able to:
+- Use a map to create a graph for graph-based path planner;
+- Generate a plan with the path planner and navigate the robot through the path to specified goals.
+
+*Part 1* and *Part 2* are the same as in the previous labs they are here just for your convenience.
 
 
 #### The summary of what you should learn is as following:
+You will learn how to:
+- Create a cost map from a pre-aquired map;
+- Generate an optimal path using the A* algorithm;
+- Execute a path on a mobile robot.
 
-1. You will learn how to search effieciently when you have a large space. 
-2. You will learn how to do resampling when you have better distributions for your states.
-3. You will how to leverage ros visualization tool (Rviz) to make an interactive interface with.
+**NOTE** this Lab builds on top of Lab 2 and Lab 3. A complete solution to Lab 2 and Lab 3 is provided within this lab so that even if you did not conclude Lab 2 and Lab 3's implementation, you can still work on Lab 3 without penalties. You are welcome to replace some of the code with your own development from Lab 2 and Lab 3.
 
+Check ```rubrics.md``` for the grading scheme of this lab.
 
 ### NOTES for pre-lab activities
 Given the limited time in the lab, it is highly recommended to go through this manual and start (or complete) your implementation before the lab date, by working on your personal setup (VMWare, remote desktop, lent laptop), and using simulation for testing when needed to verify that your codes are working before coming into the lab. For simulation, refer to `tbt3Simulation.md` in the `main` branch.
@@ -58,10 +64,9 @@ ros2 action send_goal /dock irobot_create_msgs/action/Dock {}
 - Source the .bashrc file: source ~/robohub/turtlebot4/configs/.bashrc
 - Declare ros2 domain: export ROS_DOMAIN_ID=X (X being the number of your robot)
 
+## Part 3 - Map aquisition (5 marks)
 
-## Part 3 - Map aquisition (15 marks)
-
-Undock the robot, put the robot in the closest entrance marked for you, and reset the odometry, and then acquire the map as you did in LAB-1 and save it as room for use in the planning.
+Undock the robot, put the robot in the entrance marked for you, and reset the odometry, and then acquire the map as you did in LAB-1 and save it as room for use in the planning.
 
 ```
 # terminal 1
@@ -73,80 +78,66 @@ ros2 launch turtlebot4_viz view_robot.launch.py
 # terminal 4
 ros2 run nav2_map_server map_saver_cli -f room
 ``` 
-When the map is acquired, copy the generated files ```room.yaml``` and ```room.pgm``` to the ```your_map``` directory. **In case that you picked the robot or it hit an obstacle**, you should pick your robot back and place it on the entrance, then **reset odometry** again so the odometry matches your map acquisition. **Please make sure you killed the slam and the visualization terminals with Cntrl+C or closing the terminal**.
+When the map is acquired, make sure you **don't pick up the robot** so you wouldn't alter the odometry. If by any change you did, put the robot back on the dock, then undock and reset the odometry. This is to avoid for you to map the enviornment again.
 
 **Show the map to a TA to score the marks associated to this part.**
 
-## Part 4 - Localize your robot with Particle Filter (25 marks)
-Start by first fixing your particle filter, so you can run the standalone ```particleFilter.py``` to localize your robot. 
-To fix your particle filter, you will need to:
-- Complete the motion model for each particle; follow the comments in ```particle.py```;
-- See through impelementing a search algorithm for the map occupant grids and each particle weight calculation; follow the comments in ```particle.py``` and ```mapUtilities.py```;
-- Complete the resampling, weighted averaging for the particle filter algorithm; follow the comments in ```particleFilter.py```.
-- Once your code is completed test your implementation as following,
-  - Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
-  - Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
-  - Undock your robot if needed, and use the teleop node to drive your robot to a free space, and then,
+## Part 4 - Complete the A* algorithm (25 marks)
+A mostly-completed A* algorithm is provided in ```a_star.py```.
 
-```
-# terminal 1
-python3 mapPulisher.py
-# terminal 2
-python3 particleFilter.py
-# terminal 3
-rviz2 -d for_pf.rviz
-``` 
-  - When the Rviz window opened throw a good guess by using ```2D pose estimate``` button in the top toolbar.
-  - If the particles converged, try to moving the robot around with the ```ros2 run teleop_twist_keyboard teleop_twist_keyboard```.
+For this part:
+- Follow the comments to complete the code in ```a_star.py``` to plan the path using the A* algorithm. 
+- Implement two different heuristics: Manhattan distance and Euclidean distance. A policy for switching between these two heuristics is not implemented, you are free to implement this the way you prefer (hard coded or with switching parameter or any other way).
+
+## Part 5 - Complete the code for testing the path (25 marks + 5 marks bonus)
+To utilize the planner, it is necessary to create a cost map and define a goal pose. Differently from previous planners you have used, in this case the searching algorithm will create a list of poses that the robot has to follow (a path). So some adaptations to the code are necessary.
+
+For this part:
+- Complete the code in ```planner.py``` to create the cost map using the ```mapManipulator``` from ```mapUtilities.py```;
+- Complete the code in ```planner.py``` to create a trajectory that is a list of goal poses returned by the searching algorithm which correspond to the path to follow;
+- Complete the code in ```decisions.py``` to adapt the code for the path planner.
+- Bonus point if you integrate the code with the Particle Filter you developed in the Lab 3. 
 
 
-**Show your work to TA to score the marks associated to this part.**
+## Part 6 - Test your path planner (20 marks)
+To test the path planner:
+- Choose at least two different goal poses (can be consecutive goal points during the same execution) on your map that are significantly far from each other and perform path planning and navigation for each ot these two goals.
+- Perform the planning for each of these two goal poses with the two heuristics implemented in Part 4 (Manhattan and Euclidean).
+
+**For choosing a goal pose:**
+1. Open a terminal and run the mapPublisher.py: ```python3 mapPublisher.py```  
+2. In another terminal run the rviz2 with the given configuration: ```rviz2 -d pathPlanner.rviz```
+3. In another terminal run the decisions.py: ```python3 decisions.py```
+4. On rvzi2 use the 2D goal pose on the toolbar on top to choose the goal pose 
+5. Watch the robot go to the specified point 
+
+**Note, given that there is limited time and space in the lab, do the necessary for scoring the in-lab marks (see below), and the rest in simulation.**
+
+**In-lab marks**:
+**Check your allocated time slot for testing. Please try to finish within your allocated time.**
+
+- **Show the path execution with at least two goal poses and one heuristic to a TA to score 10 marks. Show the TA where are your goal poses within the map on RViz and what is the used heuristics.**
 
 
+## Conclusions - Written report (30 marks)
+You can do this part in the lab (time allowing) or at home. **Make sure you have the proper data saved**.
 
-## Part 5 - Integration to the stack (15 marks)
-Now you need to run the point controller developed in LAB #2 with particle filter in the loop:
-- Integrate the particle filter into your localization model, ```localization.py```;
-- Design the proper flow; follow the comments in ```decisions.py```;
-- Test your navigation stack with particle filter in the loop as following,
-  - Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
-  - Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
-  - Undock your robot if needed, and use the teleop node to drive your robot to a free space, and then,
-
-```
-# terminal 1
-python3 mapPulisher.py
-# terminal 2
-python3 particleFilter.py
-# terminal 3
-rviz2 -d for_pf.rviz
-# terminal 4
-python3 decisions.py
-``` 
-  - When the Rviz window opened throw a good guess by using ```2D pose estimate``` button in the top toolbar.
-  - When the particles converged, choose your goal using ```2D nav goal``` button in the top toolbar.
-
-**Show the map to a TA to score the marks associated to this part.**
-**IMPORTANT!! Before you leave, DELETE all of your codes, files, etc.**
-
-## Conclusions - Written report (25 marks)
-You can do this part in the lab (time allowing) or at home. Make sure you have the proper data saved.
-
-Please prepare a written report containing in the front page:
+Please prepare a written report containing on the front page:
 - Names (Family Name, First Name) of all group members;
 - Student ID of all group members;
 - Station number and robot number.
 
-In a maximum of 3 pages (excluding the front page), report a comparison between the particle filter and the rawSensor method:
+In a maximum of 3 pages (excluding the front page), report the performance of the path planner. This report should contain the following:
 
-* Section 1 - the plot of the logged positions from the particle filter versus the odometry. 
-* Section 2 - comparing the particle filter performance by changing the laser scan and the particle generation standard deviation.
+* Describe how you implemented the path planning and navigation for the robot from the planner to the actual motions of the robot, including how the provided code works.
+* Figures illustrating the map, with the trajectories generated for the two goal points overlayed on the map. Make sure to clearly mark the starting and ending locations of the robot.
+* Compare the two different heuristics (Manhattan and Euclidean distances, they can be on the same plot, but use different colors). Discuss the results. Are they different, if yes, why, if not why. Which one is better, and why?
 
 ## Submission
 
 Submit the report and the code on Dropbox (LEARN) in the corresponding folder. Only one submission per group is needed:
 - **Report**: one single pdf;
-- **Code**: make sure to have commented your code! Submit one single zip file with everything (including the csv files obtained from the data log).
+- **Code**: make sure to have commented your code! Submit one single zip file with everything (including the csv files obtained from the data log and the map files).
 
 
 Good luck!

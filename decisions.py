@@ -14,7 +14,7 @@ from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry as odom
 
-from localization import localization, rawSensors, kalmanFilter, particlesFilter
+from localization import localization, rawSensors, kalmanFilter
 
 from planner import TRAJECTORY_PLANNER, POINT_PLANNER, planner
 from controller import controller, trajectoryController
@@ -39,20 +39,25 @@ class decision_maker(Node):
         self.create_subscription(PoseStamped, "/goal_pose", self.designPathFor, 10)
         
         self.pathPublisher = self.create_publisher(Path, '/designedPath', 10)
+        
         publishing_period=1/rate
 
-        self.reachThreshold=0.1
+        # TODO PART 5 choose your threshold
+        self.reachThreshold=...
 
-        # TODO part 5: call the proper types
+        # TODO PART 5 your localization type
         self.localizer=localization(...)
+
+
         
         if motion_type==POINT_PLANNER:
-            self.controller=controller(klp=0.05, klv=0.0, kap=0.8, kav=0.0)      
+            self.controller=controller(klp=0.2, klv=0.5, kap=0.8, kav=0.6)      
             self.planner=planner(POINT_PLANNER)
 
         
         elif motion_type==TRAJECTORY_PLANNER:
-            self.controller=trajectoryController(klp=0.2, klv=0.5, kap=0.8, kav=0.6)      
+            # TODO PART 5 Bonus Put the gains that you conclude from lab 2
+            self.controller=trajectoryController(...)      
             self.planner=planner(TRAJECTORY_PLANNER)
         
         else:
@@ -69,7 +74,7 @@ class decision_maker(Node):
 
 
 
-    
+    # This is for the rviz2 interface
     def designPathFor(self, msg: PoseStamped):
         
         spin_once(self.localizer)
@@ -78,16 +83,12 @@ class decision_maker(Node):
             print("waiting for odom msgs ....")
             return
         
-        
         self.goal=self.planner.plan([self.localizer.getPose()[0], self.localizer.getPose()[1]],
                                      [msg.pose.position.x, msg.pose.position.y])
 
     
     def timerCallback(self):
         
-        if self.goal is None:
-            return
-
         spin_once(self.localizer)
 
         if self.localizer.getPose() is  None:
@@ -97,8 +98,10 @@ class decision_maker(Node):
         
         vel_msg=Twist()
         
-
-        if len(self.goal) > 2:
+        if self.goal is None:
+            return
+        
+        if type(self.goal) == list:
             reached_goal=True if calculate_linear_error(self.localizer.getPose(), self.goal[-1]) <self.reachThreshold else False
         else: 
             reached_goal=True if calculate_linear_error(self.localizer.getPose(), self.goal) <self.reachThreshold else False
@@ -112,6 +115,8 @@ class decision_maker(Node):
             
             self.controller.PID_angular.logger.save_log()
             self.controller.PID_linear.logger.save_log()
+
+
             
             self.goal = None
             print("waiting for the new position input, use 2D nav goal on map")
@@ -126,8 +131,33 @@ class decision_maker(Node):
         vel_msg.angular.z=yaw_rate
         
         self.publisher.publish(vel_msg)
+        self.publishPathOnRviz2(self.goal)
 
 
+
+    def publishPathOnRviz2(self, path):
+
+        Path_ =  Path()
+
+        Path_.header.frame_id ="map"
+        Path_.header.stamp = self.get_clock().now().to_msg()
+
+        for point in path:
+            pose = PoseStamped()
+            pose.header.frame_id = "map"
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.pose.position.x = point[0]
+            pose.pose.position.y = point[1]
+
+            # Set the orientation of the pose. Here, it's set to a default orientation.
+            pose.pose.orientation.x = 0.0
+            pose.pose.orientation.y = 0.0
+            pose.pose.orientation.z = 0.0
+            pose.pose.orientation.w = 1.0
+
+            Path_.poses.append(pose)
+
+        self.pathPublisher.publish(Path_)
 
 import argparse
 def main(args=None):
@@ -156,7 +186,7 @@ def main(args=None):
 
 if __name__=="__main__":
     argParser=argparse.ArgumentParser(description="point or trajectory") 
-    argParser.add_argument("--motion", type=str, default="point")
+    argParser.add_argument("--motion", type=str, default="trajectory")
     args = argParser.parse_args()
 
     main(args)
