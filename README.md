@@ -3,7 +3,7 @@
 
 ## Introduction
 
-This repo is made to help the students make a complete mobile robot stack from scratch! 
+This repo is made to help the students make a complete mobile robot stack from scratch! Solution in this repo is [here](https://github.com/aalghooneh/Autonomous_Mobile_Robotics_Solution)
 
 ## What do you need to carry through this course?
 The course code is developed based on TurtleBot4 (tb4) topics but as long as you have a ROS/ROS2-based mobile robot with lidar, camera, IMU, and encoders you can follow all the labs. 
